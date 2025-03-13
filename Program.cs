@@ -1,31 +1,21 @@
-using MyGameApi.MongoDb;
-using MyGameApi.Services;
+using MyGameApi.Model;
+using MyGameApi.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Agregar servicios al contenedor
+// Configurar la inyección de dependencias para GamePlayerDatabaseSettings
+builder.Services.Configure<GamePlayerDatabaseSettings>(
+    builder.Configuration.GetSection("GamePlayerDatabaseSettings"));
+
+// Registrar el servicio de jugadores
+builder.Services.AddSingleton<GamePlayerService>();
+
+// Agregar controladores
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Configurar MongoDB a partir de appsettings.json
-builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
-
-// Registrar el servicio de MongoDB (como singleton)
-builder.Services.AddSingleton<MongoDbService>();
 
 var app = builder.Build();
-
-// Configurar la tubería HTTP
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
-
-

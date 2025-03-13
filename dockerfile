@@ -1,31 +1,16 @@
-# Etapa base: imagen runtime de ASP.NET Core (.NET 8.0)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-# Si en Render necesitas un usuario específico, puedes configurar la variable de entorno APP_UID;
-# en caso contrario, elimina o comenta la siguiente línea:
-# USER $APP_UID
-WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
-
 # Etapa de compilación: imagen SDK de .NET 8.0
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
-# Copia el archivo de proyecto y restaura las dependencias
-COPY ["MyGameApi.csproj", "./"]
+FROM mcr.microsoft.com/dotnet/sdk:8.0@sha256:35792ea4ad1db051981f62b313f1be3b46b1f45cadbaa3c288cd0d3056eefb83 AS build
+WORKDIR /MyGameApi
+
+# Copia todo el contenido del contexto
+COPY . ./
+
+# Restaura dependencias y publica en modo Release
 RUN dotnet restore "MyGameApi.csproj"
-# Copia el resto del código fuente y compila la aplicación
-COPY . .
-WORKDIR "/src/"
-RUN dotnet build "MyGameApi.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet publish "MyGameApi.csproj" -c Release -o out
 
-# Etapa de publicación: genera la versión optimizada para producción
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "MyGameApi.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
-
-# Etapa final: imagen runtime que ejecutará la aplicación publicada
-FROM base AS final
-WORKDIR /app
-COPY --from=publish /app/publish .
+# Etapa final: imagen runtime de ASP.NET Core (.NET 8.0)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0@sha256:6c4df091e4e531bb93bdbfe7e7f0998e7ced344f54426b7e874116a3dc3233ff
+WORKDIR /MyGameApi
+COPY --from=build /MyGameApi/out .
 ENTRYPOINT ["dotnet", "MyGameApi.dll"]
